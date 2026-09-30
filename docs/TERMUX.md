@@ -18,7 +18,7 @@ pkg install curl
 ## Install LRM Mobile
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USER/lrm-mobile/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/install.sh | sh
 ```
 
 The installer detects Android, picks `lrm_android_arm64`, verifies its
@@ -124,7 +124,7 @@ first. Keep repositories in `$HOME` when you can.
 
 ```sh
 pkg install golang git
-git clone --recurse-submodules https://github.com/YOUR_GITHUB_USER/lrm-mobile
+git clone --recurse-submodules https://github.com/hacvilke/lrm-mobile
 cd lrm-mobile
 go build -o ~/.local/bin/lrm ./cmd/lrm
 ```

@@ -74,7 +74,7 @@ In Termux:
 
 ```sh
 pkg install curl
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USER/lrm-mobile/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/install.sh | sh
 lrm platform              # paste this into any bug report
 lrm --help
 mkdir ~/my-project && cd ~/my-project

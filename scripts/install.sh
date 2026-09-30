@@ -1,9 +1,9 @@
 #!/bin/sh
 # LRM Mobile installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USER/lrm-mobile/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/install.sh | sh
 #
-# (Replace YOUR_GITHUB_USER, or export LRM_MOBILE_REPO=owner/lrm-mobile, until
+# (Override with LRM_MOBILE_REPO=owner/lrm-mobile, until
 # the repository has a permanent home. Nothing below hard-codes an owner.)
 #
 # What it does, in order:
@@ -39,7 +39,7 @@
 
 set -eu
 
-REPO="${LRM_MOBILE_REPO:-YOUR_GITHUB_USER/lrm-mobile}"
+REPO="${LRM_MOBILE_REPO:-hacvilke/lrm-mobile}"  # override with $LRM_MOBILE_REPO
 VERSION="${LRM_VERSION:-}"
 BASE_URL="${LRM_BASE_URL:-}"
 INSTALL_DIR="${LRM_INSTALL_DIR:-}"
@@ -197,7 +197,7 @@ latest_version() {
         | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
   [ -n "$tag" ] || die "no published release for ${REPO}
        (if you have not set LRM_MOBILE_REPO, the default is still the
-        YOUR_GITHUB_USER placeholder)
+        hacvilke placeholder)
        build from source instead:  sh install.sh --source"
   printf '%s\n' "$tag"
 }

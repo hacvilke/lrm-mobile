@@ -15,12 +15,12 @@ upstream was missing for mobile.
 ## Install (Android / Termux)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USER/lrm-mobile/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/install.sh | sh
 ```
 
-> Replace `YOUR_GITHUB_USER` with this repository's owner, or set
-> `LRM_MOBILE_REPO=owner/lrm-mobile`. The placeholder is deliberate — no
-> owner is hard-coded anywhere in this repo.
+> The owner is not hard-coded: `LRM_MOBILE_REPO=owner/lrm-mobile` overrides
+> it, and `LRM_BASE_URL` points the installer at a mirror. `hacvilke` is
+> only the default.
 
 Then:
 
@@ -213,7 +213,7 @@ off in release notes with the device and Android version named, not before.
 ## Building from source
 
 ```sh
-git clone --recurse-submodules https://github.com/YOUR_GITHUB_USER/lrm-mobile
+git clone --recurse-submodules https://github.com/hacvilke/lrm-mobile
 cd lrm-mobile
 make build          # native binary -> ./lrm
 make release        # all targets -> ./dist, with checksums, header-verified
