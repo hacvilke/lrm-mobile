@@ -88,20 +88,41 @@ func RealEnv() Env {
 			_, err := os.Stat(p)
 			return err == nil
 		},
-		Getprop: func(key string) string {
-			bin, err := exec.LookPath("getprop")
-			if err != nil {
-				return ""
-			}
-			out, err := exec.Command(bin, key).Output()
-			if err != nil {
-				return ""
-			}
-			return strings.TrimSpace(string(out))
-		},
-		UnameS: func() string { return unameOr(runtime.GOOS, "-s") },
-		UnameM: func() string { return unameOr(runtime.GOARCH, "-m") },
+		Getprop: realGetprop,
+		UnameS:  func() string { return unameOr(runtime.GOOS, "-s") },
+		UnameM:  func() string { return unameOr(runtime.GOARCH, "-m") },
 	}
+}
+
+// getpropPaths are tried in order. LookPath alone is not enough: Termux's
+// default PATH does not always include /system/bin, so a plain
+// exec.LookPath("getprop") fails on a device where getprop is perfectly
+// usable. Observed on Android 16 / Termux, where the shell installer
+// reported "Android 16" but the Go binary reported no version at all.
+var getpropPaths = []string{
+	"/system/bin/getprop",
+	"/system/xbin/getprop",
+	"/vendor/bin/getprop",
+}
+
+func realGetprop(key string) string {
+	bin, err := exec.LookPath("getprop")
+	if err != nil {
+		for _, p := range getpropPaths {
+			if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+				bin = p
+				break
+			}
+		}
+	}
+	if bin == "" {
+		return ""
+	}
+	out, err := exec.Command(bin, key).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func unameOr(fallback, flag string) string {

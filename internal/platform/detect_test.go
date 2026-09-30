@@ -362,3 +362,25 @@ func TestDetectWithEmptyEnvDoesNotPanic(t *testing.T) {
 		t.Logf("OS = %q", got.OS)
 	}
 }
+
+// TestGetpropFallsBackToAbsolutePaths guards the Android 16 observation
+// that /system/bin is not necessarily on Termux's PATH, so LookPath alone
+// silently loses the Android version.
+func TestGetpropFallsBackToAbsolutePaths(t *testing.T) {
+	for _, p := range getpropPaths {
+		if !filepath.IsAbs(p) {
+			t.Errorf("getprop fallback %q is not absolute", p)
+		}
+	}
+	if len(getpropPaths) == 0 {
+		t.Fatal("no absolute getprop fallbacks configured")
+	}
+	if getpropPaths[0] != "/system/bin/getprop" {
+		t.Errorf("first fallback = %q, want /system/bin/getprop", getpropPaths[0])
+	}
+	// Off Android none of these exist, and realGetprop must return ""
+	// rather than erroring or hanging.
+	if got := realGetprop("ro.build.version.release"); got != "" && runtime.GOOS != "android" {
+		t.Logf("host unexpectedly answered getprop: %q", got)
+	}
+}

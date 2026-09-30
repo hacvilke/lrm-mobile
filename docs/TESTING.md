@@ -54,6 +54,23 @@ device.
 - [x] The post-install executable check **caught a real bug** (see below)
       instead of reporting a false success.
 
+Re-verified on the same device after v0.1.1:
+
+- [x] `lrm platform` runs and reports `launched via /system/bin/linker64
+      (argv corrected)` — the argv injection is detected and undone on
+      real hardware.
+- [x] `lrm --help` works.
+- [x] `$HOME/.local/bin` detected as already on PATH.
+- [x] All resolved paths land under `$HOME` / `$PREFIX`:
+      config `~/.lrm`, cache `$PREFIX/tmp/lrm`, tmp `$PREFIX/tmp`.
+- [x] `platform.Executable()` returns the real binary path, not the
+      loader's.
+
+That run also showed `getprop` was not being found from inside the Go
+process (Termux's PATH does not always include `/system/bin`), so the
+Android version was missing from `lrm platform` though the shell installer
+had it. Fixed in v0.1.2 with absolute-path fallbacks.
+
 That run also found the argv defect fixed in v0.1.1: Termux launches
 binaries through `/system/bin/linker64`, which injects the executable's
 path as `os.Args[1]`, so every subcommand was read as an unknown command.
@@ -65,7 +82,6 @@ Please do not read this repository as claiming a fully device-tested
 Android release until a maintainer has ticked these off on hardware and
 recorded the device and Android version in the release notes:
 
-- [ ] `lrm --help` returning success on a physical device (v0.1.1)
 - [ ] `lrm init` / `lrm status` / `lrm commit` on-device
 - [ ] `lrm daemon` surviving Android's background process limits
       (expect this to need Termux's wake-lock: `termux-wake-lock`)
