@@ -134,6 +134,7 @@ this repository is a layer, and the core is untouched.
 
 ```sh
 lrm platform                # NEW: what this binary thinks it is running on
+lrm scan                    # NEW: devices on your Wi-Fi + networks in range
 lrm init --user brandon     # start a repository
 lrm status
 lrm commit -m "from my phone"
@@ -144,7 +145,23 @@ lrm share / join / sync / clone / send
 lrm branch / merge / stash / rebase / blame / bisect / grep / notes ...
 ```
 
-Every command except `lrm platform` is upstream LRM's, unmodified — the
+### Mobile-only commands
+
+`lrm scan` — see what is on the network around the phone: devices sharing
+your Wi-Fi (IP, MAC, vendor, hostname, open ports, which are running LRM)
+and the Wi-Fi access points in radio range. A phone is usually the only
+computer already on the network you care about, and when a sync is not
+working the first question is whether the other machine is reachable at
+all. No root, no ICMP, confined to the subnet you are joined to unless you
+ask otherwise. Full details and etiquette: **[docs/SCAN.md](docs/SCAN.md)**.
+
+`lrm daemon --supervise --wake-lock` — keep the daemon alive against
+Android's background-process killer: restart it when the system kills it
+(LRM's sync is resumable, so nothing is lost but time) and optionally hold
+a Termux wake lock. Both opt-in, because they cost battery. See
+**[docs/DAEMON-ANDROID.md](docs/DAEMON-ANDROID.md)**.
+
+Every other command is upstream LRM's, unmodified — the
 whole git-compat surface and the `.lr` / `.lrq` languages included. Upstream's
 own CLI sweep (`scripts/check-all.sh`, 90 checks) passes against a binary
 built from this repository.
@@ -290,9 +307,17 @@ The binary's ELF interpreter does not exist — a `GOOS=linux` PIE build
 asking for `/lib/ld-linux-aarch64.so.1`. Install the `android_arm64` asset.
 
 **The daemon dies when the screen turns off**
-Android killed it. `pkg install termux-api && termux-wake-lock`, and exempt
-Termux from battery optimisation in system settings. LRM's sync resumes, so
-restarting the daemon is safe.
+Android killed it. Use `lrm daemon --supervise --wake-lock`, and exempt
+Termux from battery optimisation (Settings → Apps → Termux → Battery →
+Unrestricted). LRM's sync resumes, so restarting is safe. Full guidance and
+an honest list of what is *not* solved: [docs/DAEMON-ANDROID.md](docs/DAEMON-ANDROID.md).
+
+**`lrm scan` finds nothing / no Wi-Fi networks**
+The Wi-Fi survey needs `pkg install termux-api` plus the Termux:API app and
+Location permission, and Android throttles scans to a few per two minutes.
+For devices: `/proc/net/arp` is restricted on Android 10+, and there is no
+ICMP ping without root, so a firewalled host that has not spoken recently
+may not appear. See [docs/SCAN.md](docs/SCAN.md).
 
 **The dashboard will not open**
 It is localhost-only by design. Copy the printed `http://127.0.0.1:PORT`
@@ -315,14 +340,16 @@ timestamps. LRM works there but is slower. Prefer `$HOME`.
 ```
 lrm-mobile/
 ├── cmd/lrm/                 entry point (~120 lines) + end-to-end tests
-├── internal/platform/       OS/arch/Android/Termux detection, paths, PATH
+├── internal/platform/       OS/arch/Android/Termux detection, paths, argv, exec
+├── internal/scan/           LAN + Wi-Fi discovery for `lrm scan`
 ├── scripts/
 │   ├── install.sh           the mobile-aware installer
 │   ├── build.sh             the PIE / GOOS=android build recipe
 │   ├── verify-elf.sh        blocks a bad Android asset from shipping
 │   └── test-install.sh      installer tests against simulated hosts
 ├── .github/workflows/       ci.yml, release.yml
-├── docs/                    E_TYPE.md, TERMUX.md, ARCHITECTURE.md,
+├── docs/                    E_TYPE.md, TERMUX.md, SCAN.md,
+│                            DAEMON-ANDROID.md, ARCHITECTURE.md,
 │                            TESTING.md, ROADMAP-IOS.md
 ├── third_party/lrm/         upstream LRM (git submodule, unmodified)
 ├── go.mod

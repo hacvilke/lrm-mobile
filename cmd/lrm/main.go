@@ -50,6 +50,10 @@ func main() {
 		case "platform", "doctor":
 			printPlatform(info, rawArgs)
 			return
+		case "scan":
+			os.Exit(runScan(args[1:], info))
+		case "daemon":
+			os.Exit(runDaemon(args[1:], rawArgs, info))
 		}
 	}
 
@@ -90,6 +94,42 @@ func prepare(info platform.Info) error {
 // no desktop browser and no xdg-open by default; upstream already binds
 // 127.0.0.1 and prints the URL rather than launching anything, so the only
 // thing missing on mobile is telling the user how to open it.
+// runDaemon handles LRM Mobile's daemon additions and then hands off to
+// upstream's daemon for the actual work.
+func runDaemon(args []string, rawArgs []string, info platform.Info) int {
+	for _, a := range args {
+		if a == "-h" || a == "--help" {
+			fmt.Print(daemonExtraUsage)
+			return cli.Run([]string{"daemon", "--help"})
+		}
+	}
+	o, err := parseDaemonArgs(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "lrm daemon:", err)
+		return 2
+	}
+
+	if info.IsMobile() && os.Getenv("LRM_SUPERVISED") == "" {
+		fmt.Println(batteryAdvice)
+	}
+
+	if o.wakeLock {
+		release, note := acquireWakeLock()
+		if note != "" {
+			fmt.Fprintln(os.Stderr, "mobile: "+note)
+		} else {
+			fmt.Println("mobile: wake lock held — release it with Ctrl-C (battery will drain faster)")
+		}
+		defer release()
+	}
+
+	if o.supervise && os.Getenv("LRM_SUPERVISED") == "" {
+		return superviseDaemon(o, rawArgs, info)
+	}
+
+	return cli.Run(append([]string{"daemon"}, o.rest...))
+}
+
 func hintDashboard(info platform.Info, args []string) {
 	if !info.IsMobile() || len(args) == 0 {
 		return

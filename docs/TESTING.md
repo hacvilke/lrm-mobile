@@ -95,6 +95,25 @@ it later does not mean restructuring anything — but iOS has no general
 process-execution model for a CLI like this, and nothing has been built or
 tested. Saying otherwise would be a lie.
 
+## `lrm scan` and the daemon helpers
+
+Machine-verified: subnet maths, host enumeration, IP ordering, port-list
+parsing, MAC/OUI lookup including the randomised-address and
+locally-administered-vendor cases, Wi-Fi band/channel/security decoding,
+signal rendering, neighbour-table parsing, TCP probe behaviour (including
+"refused counts as alive"), the self/gateway labelling fix, the oversized-
+subnet guard, and daemon flag splitting.
+
+Exercised for real on a Linux host: `lrm scan --fast`, `--full`, `--json`
+and `--cidr` all run end to end and produce correct output.
+
+**Not verified on a phone:** the Wi-Fi survey (needs Termux:API and
+Location on a real device), `/proc/net/arp` behaviour under Android 10+
+restrictions, and whether `--supervise` actually survives Android's
+background killer over hours. The mechanisms are implemented and tested;
+their effectiveness on hardware is unmeasured. Do not read the presence of
+these features as a claim that Android will cooperate.
+
 ## Running the tests
 
 ```sh
