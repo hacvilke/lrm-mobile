@@ -3,8 +3,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/install.sh | sh
 #
-# (Override with LRM_MOBILE_REPO=owner/lrm-mobile, until
-# the repository has a permanent home. Nothing below hard-codes an owner.)
+# The owner is a default, not a hard-coded constant: override it with
+# LRM_MOBILE_REPO=owner/lrm-mobile, or point LRM_BASE_URL at a mirror.
 #
 # What it does, in order:
 #   1. detect the operating system
@@ -196,8 +196,7 @@ latest_version() {
   tag="$(fetch "https://api.github.com/repos/${REPO}/releases/latest" \
         | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
   [ -n "$tag" ] || die "no published release for ${REPO}
-       (if you have not set LRM_MOBILE_REPO, the default is still the
-        hacvilke placeholder)
+       (set LRM_MOBILE_REPO=owner/repo if you are installing from a fork)
        build from source instead:  sh install.sh --source"
   printf '%s\n' "$tag"
 }
