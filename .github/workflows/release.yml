@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve version
+        id: v
+        run: |
+          v="${{ github.event.inputs.version }}"
+          [ -n "$v" ] || v="${GITHUB_REF#refs/tags/}"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build all targets
+        run: sh scripts/build.sh --version "${{ steps.v.outputs.version }}" --out dist
+
+      # A release that ships a binary Android refuses is the one failure
+      # mode this project must never reproduce. Blocking, not advisory.
+      - name: Verify Android binaries are PIE
+        run: sh scripts/verify-elf.sh dist
+
+      - name: Show what is being released
+        run: |
+          ls -l dist
+          cat dist/SHA256SUMS.txt
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            ## Install (Android / Termux)
+
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | sh
+            ```
+
+            Then:
+
+            ```sh
+            lrm --help
+            ```
+
+            | Asset | Platform | Notes |
+            |---|---|---|
+            | `lrm_android_arm64` | Android arm64 (Termux) | PIE, `GOOS=android`, pure Go |
+            | `lrm_linux_arm64`   | Linux arm64            | desktop / SBC |
+            | `lrm_linux_amd64`   | Linux amd64            | desktop |
+
+            Verify your download against `SHA256SUMS.txt`.
+          files: |
+            dist/lrm_*
+            dist/SHA256SUMS.txt

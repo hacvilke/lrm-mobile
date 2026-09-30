@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: gofmt
+        run: |
+          out="$(gofmt -l ./cmd ./internal)"
+          if [ -n "$out" ]; then echo "not gofmt'd:"; echo "$out"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./... -count=1
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck -s sh scripts/install.sh scripts/build.sh scripts/verify-elf.sh || true
+      - name: installer tests
+        run: sh scripts/test-install.sh
+
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [android_arm64, linux_arm64, linux_amd64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        run: sh scripts/build.sh --out dist ${{ matrix.target }}
+      # The build script already runs verify-elf.sh, which fails the job if
+      # an Android binary comes out ET_EXEC. Keeping it as its own step
+      # makes the reason obvious in the job log.
+      - name: Verify ELF headers
+        run: sh scripts/verify-elf.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lrm_${{ matrix.target }}
+          path: dist/lrm_*
+          if-no-files-found: error
+
+  smoke-android:
+    name: Smoke test android/arm64 under qemu
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: lrm_android_arm64
+          path: dist
+      # This is a partial check, and it is labelled as one. qemu-aarch64 with
+      # a glibc sysroot is not Android: it cannot supply
+      # /system/bin/linker64, so it cannot prove the binary runs on a real
+      # device. What it does prove is that the ELF is a valid, loadable
+      # aarch64 PIE object. Real-device verification is manual; see
+      # docs/TESTING.md.
+      - name: Inspect the Android binary
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq binutils file
+          chmod +x dist/lrm_android_arm64
+          file dist/lrm_android_arm64
+          readelf -h dist/lrm_android_arm64 | grep -E 'Type|Machine'
+          readelf -l dist/lrm_android_arm64 | grep -A1 INTERP
+          readelf -h dist/lrm_android_arm64 | grep -q 'DYN' \
+            || { echo "::error::android binary is not ET_DYN"; exit 1; }
+          readelf -l dist/lrm_android_arm64 | grep -q '/system/bin/linker64' \
+            || { echo "::error::android binary does not use Android's loader"; exit 1; }
