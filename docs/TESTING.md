@@ -39,13 +39,33 @@ Android's loader — i.e. that the specific failure reported in the original
 bug cannot occur. It does not prove the program behaves correctly on a real
 device.
 
+## Confirmed on real hardware
+
+**Android 16, arm64, Termux, non-rooted. 2026-09-30.**
+
+- [x] The binary **loads and executes.** No `e_type: 2`. The PIE +
+      `GOOS=android` build is correct on a real device, not just in a
+      header dump.
+- [x] The installer detects the device correctly: `platform : android/arm64
+      (Android 16)`, `termux : yes`, `PREFIX=/data/data/com.termux/files/usr`.
+- [x] It selects `lrm_android_arm64`, not `lrm_linux_arm64`.
+- [x] SHA-256 verification passes against the published release.
+- [x] Installs to `$HOME/.local/bin/lrm` with no root.
+- [x] The post-install executable check **caught a real bug** (see below)
+      instead of reporting a false success.
+
+That run also found the argv defect fixed in v0.1.1: Termux launches
+binaries through `/system/bin/linker64`, which injects the executable's
+path as `os.Args[1]`, so every subcommand was read as an unknown command.
+Covered now by `TestFixArgsRemovesTheLinkerArgument` and friends.
+
 ## Not yet verified — needs a real device
 
 Please do not read this repository as claiming a fully device-tested
 Android release until a maintainer has ticked these off on hardware and
 recorded the device and Android version in the release notes:
 
-- [ ] `lrm --help` on a physical Android arm64 device in Termux
+- [ ] `lrm --help` returning success on a physical device (v0.1.1)
 - [ ] `lrm init` / `lrm status` / `lrm commit` on-device
 - [ ] `lrm daemon` surviving Android's background process limits
       (expect this to need Termux's wake-lock: `termux-wake-lock`)

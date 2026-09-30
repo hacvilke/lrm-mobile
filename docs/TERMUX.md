@@ -91,6 +91,40 @@ Do not bind it to `0.0.0.0` on a phone you carry around. The dashboard
 includes a read-only file browser over your workspace; on public Wi-Fi that
 is a data leak. LRM prints a warning if you do it anyway.
 
+## `unknown command "/data/data/com.termux/.../lrm"`
+
+Fixed in v0.1.1. If you see it, upgrade:
+
+```sh
+sh install.sh --force
+```
+
+Android 10 and later forbid `exec()` of a file inside an app's private
+data directory — which is exactly where Termux's `$HOME` lives. Termux
+therefore starts programs through Android's dynamic loader:
+
+```
+/system/bin/linker64 /data/data/com.termux/files/home/.local/bin/lrm platform
+```
+
+The loader leaves its argument in place, so the program sees an extra
+element in `argv`:
+
+```
+os.Args = ["lrm", "/data/.../lrm", "platform"]
+                   ^^^^^^^^^^^^^^ injected by the loader
+```
+
+Anything parsing `os.Args[1:]` then reads that path as the first user
+argument. LRM Mobile detects the situation by reading `/proc/self/exe` —
+under the loader it names `linker64`, not `lrm` — and removes the injected
+element. `lrm platform` prints `launched via /system/bin/linker64 (argv
+corrected)` when this applies.
+
+This also means `os.Executable()` returns the loader's path on Termux, not
+yours; use `platform.Executable(os.Args)` instead if you are writing code
+against this repository.
+
 ## Storage and paths
 
 Everything lives under `$HOME`, which in Termux is

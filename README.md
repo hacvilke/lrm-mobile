@@ -186,7 +186,7 @@ device you carry around.
 
 | Target | Asset | Status |
 |---|---|---|
-| Android arm64 (Termux) | `lrm_android_arm64` | **Built and header-verified in CI.** PIE, `GOOS=android`, pure Go. On-device execution: see the honesty note below. |
+| Android arm64 (Termux) | `lrm_android_arm64` | **Runs on real hardware — confirmed on Android 16, arm64, non-rooted Termux.** PIE, `GOOS=android`, pure Go. |
 | Linux arm64 | `lrm_linux_arm64` | Built and tested |
 | Linux amd64 | `lrm_linux_amd64` | Built and tested |
 | Android x86_64 (emulator) | — | **Not shipped.** Go cannot build an android/amd64 PIE without cgo + NDK. Build from source in the emulator. |
@@ -272,6 +272,13 @@ You are running a `linux_*` asset, not `android_arm64`. Reinstall:
 `sh install.sh --force`, then check `lrm platform` says `detected android`.
 The current installer refuses to install an `ET_EXEC` binary on Android, so
 this should only happen with a manually placed binary.
+
+**`unknown command "/data/data/com.termux/.../lrm"`**
+Fixed in v0.1.1 — upgrade with `sh install.sh --force`. Termux launches
+binaries through `/system/bin/linker64` (Android 10+ forbids `exec()` in an
+app's private data directory), and the loader injects the executable's path
+as `os.Args[1]`. LRM Mobile now detects this via `/proc/self/exe` and
+corrects argv.
 
 **`lrm: command not found` right after a successful install**
 `$HOME/.local/bin` is not on your PATH. Termux reads `~/.bashrc`, not

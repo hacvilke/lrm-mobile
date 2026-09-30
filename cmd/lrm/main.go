@@ -39,11 +39,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	args := os.Args[1:]
+	// Termux launches binaries through /system/bin/linker64 (Android 10+
+	// forbids exec() inside an app's private data directory), and the
+	// loader leaves its own argument wedged into argv. Undo that before
+	// anything tries to parse a subcommand out of it.
+	rawArgs := os.Args
+	args := platform.FixArgs(rawArgs)[1:]
 	if len(args) > 0 {
 		switch args[0] {
 		case "platform", "doctor":
-			printPlatform(info)
+			printPlatform(info, rawArgs)
 			return
 		}
 	}
@@ -96,9 +101,13 @@ func hintDashboard(info platform.Info, args []string) {
 	fmt.Println("mobile: no browser is launched — copy the http://127.0.0.1:PORT URL below into your phone's browser.")
 }
 
-func printPlatform(info platform.Info) {
+func printPlatform(info platform.Info, rawArgs []string) {
 	fmt.Printf("lrm (LRM Mobile) %s\n", version)
 	fmt.Printf("  built for     %s/%s\n", runtime.GOOS, runtime.GOARCH)
+	fmt.Printf("  executable    %s\n", platform.Executable(rawArgs))
+	if platform.LaunchedViaLinker() {
+		fmt.Printf("  launched via  /system/bin/linker64 (argv corrected)\n")
+	}
 	fmt.Printf("  detected      %s\n", info.Describe())
 	fmt.Printf("  termux        %t\n", info.Termux)
 	if info.Prefix != "" {
