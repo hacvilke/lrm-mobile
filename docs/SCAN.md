@@ -57,7 +57,7 @@ scanned in 34.2s
 
 | Source | What it gives | Caveat |
 |---|---|---|
-| `/proc/net/arp` | IP + MAC of anything that recently talked | **Restricted on Android 10+.** When it is unreadable the scan says so. |
+| `/proc/net/arp` | IP + MAC of anything that recently talked | **Restricted on Android 10+ — confirmed unreadable on Android 16.** No MAC addresses or vendor names on a modern phone. |
 | TCP connect probes | live hosts | No ICMP — see below |
 | mDNS (upstream LRM's browser) | LRM peers, user, workspace, port | Only devices running `lrm daemon` |
 | Reverse DNS | hostnames | Depends on your router |
@@ -85,6 +85,12 @@ pass. Since v0.2.1 the scanner never relies on netlink:
    route that would be used. No permissions at all.
 3. **Fall back to assuming a `/24`** around that address if the routing
    table is unreadable too.
+
+On Android 16, step 1 is unavailable as well — `/proc/net/route` is
+restricted along with the rest of `/proc/net` — so a current phone lands on
+step 3. In practice that works: a `/24` is correct on essentially every
+home and office Wi-Fi, and the `.1` gateway guess was right on the test
+network. If your subnet is not a `/24`, pass `--cidr`.
 
 Whenever a fallback is used the scan says so in its `note:` output, because
 a degraded scan that looks identical to a full one is worse than one that

@@ -79,6 +79,24 @@ backgrounded; reattach with `tmux attach`.
   across manufacturers and Android versions is exactly the kind of claim
   this project refuses to make without evidence. See `TESTING.md`.
 
+## If supervision gives up
+
+```
+lrm: the daemon exited immediately 3 times in a row (exit status 1).
+lrm: that is a startup failure, not Android reclaiming the process,
+lrm: so supervision is giving up rather than looping.
+```
+
+This is deliberate. A daemon that dies in under five seconds with an
+ordinary exit status was not killed by the system — it failed to start,
+and restarting it cannot help. Earlier versions looped on a doubling
+backoff and buried the real error in their own output. The error you need
+is printed immediately above that message; the usual causes are running
+outside an LRM repository or a port already in use.
+
+A daemon killed by a signal, or one that ran for a while first, is treated
+as a system kill and restarted as normal.
+
 ## Diagnosing
 
 ```sh

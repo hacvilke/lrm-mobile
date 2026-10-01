@@ -118,6 +118,28 @@ Confirmed on the Android 16 device, v0.2.0:
 - [x] The Wi-Fi survey correctly reported that the Termux:API *app* was
       missing when only the `termux-api` package was installed.
 
+Confirmed on the Android 16 device, v0.2.1:
+
+- [x] **`lrm scan --fast` works.** Found 11 devices on a real /24, with the
+      gateway correctly identified and its open ports listed (22, 53, 80,
+      443, 1883).
+- [x] **Netlink really is blocked** and the fallback really is needed:
+      `net.Interfaces()` fails, and the scan proceeds anyway.
+- [x] **`/proc/net/route` is ALSO unreadable on Android 16**, so the scan
+      lands on the last-resort path: local address via a connected UDP
+      socket, assume a /24, guess the gateway. The guess was correct on
+      this network. MAC addresses and vendors are therefore unavailable.
+- [x] **`/proc/net/arp` is restricted on Android 16**, as suspected — this
+      had never been confirmed before. Discovery is TCP-probe-only there,
+      which is why no MACs appear in the output.
+- [x] Both fallbacks announced themselves in the scan's notes, as intended.
+- [x] The Wi-Fi survey correctly distinguished the `termux-api` package
+      from the Termux:API app.
+- [x] `lrm daemon --supervise` exposed a bug in the loader re-exec
+      (argv[0] was the loader, so the restarted child could not parse its
+      own subcommand) and a second one in the restart policy (it span on
+      an instant failure instead of reporting it). Both fixed in v0.2.2.
+
 **Not verified on a phone:** the Wi-Fi survey (needs Termux:API and
 Location on a real device), `/proc/net/arp` behaviour under Android 10+
 restrictions, and whether `--supervise` actually survives Android's
