@@ -148,7 +148,7 @@ lrm branch / merge / stash / rebase / blame / bisect / grep / notes ...
 ### Mobile-only commands
 
 `lrm scan` — see what is on the network around the phone: devices sharing
-your Wi-Fi (IP, MAC, vendor, hostname, open ports, which are running LRM)
+your Wi-Fi (IP, name, model, OS, open ports, which are running LRM)
 and the Wi-Fi access points in radio range. A phone is usually the only
 computer already on the network you care about, and when a sync is not
 working the first question is whether the other machine is reachable at

@@ -57,6 +57,9 @@ type Device struct {
 	MAC      string   `json:"mac,omitempty"`
 	Vendor   string   `json:"vendor,omitempty"`
 	Hostname string   `json:"hostname,omitempty"`
+	Model    string   `json:"model,omitempty"`
+	OS       string   `json:"os,omitempty"`
+	Services []string `json:"services,omitempty"`
 	Ports    []Port   `json:"ports,omitempty"`
 	Sources  []string `json:"sources"` // how we learned about it
 	IsSelf   bool     `json:"is_self,omitempty"`
@@ -130,6 +133,8 @@ type Options struct {
 	Ports []int
 	// SkipWiFi disables the termux-api Wi-Fi survey.
 	SkipWiFi bool
+	// SkipIdentify disables SSDP, NetBIOS and banner probing.
+	SkipIdentify bool
 	// MaxHosts refuses to scan a subnet larger than this many addresses,
 	// so that a /8 on some corporate VPN does not silently become a
 	// week-long job.
@@ -291,6 +296,15 @@ func Run(ctx context.Context, opt Options) (*Result, error) {
 
 	// --- names ---------------------------------------------------------
 	resolveNames(ctx, devices)
+
+	// --- ask the devices who they are ------------------------------------
+	// On Android the ARP table is unreadable, so MAC-based vendor lookup
+	// yields nothing. Asking the devices directly is both possible without
+	// any permission and far more informative.
+	if opt.Depth != Passive && !opt.SkipIdentify {
+		opt.Progress("identifying devices (SSDP, NetBIOS, banners)...")
+		identify(ctx, devices, opt)
+	}
 
 	// --- identify LRM by port even without mDNS -------------------------
 	for _, d := range devices {
