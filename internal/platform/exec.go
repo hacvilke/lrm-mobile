@@ -68,10 +68,39 @@ func Command(name string, args ...string) *exec.Cmd {
 	}
 	if NeedsLinkerExec(resolved) {
 		if ld := Linker(); ld != "" {
-			return exec.Command(ld, append([]string{resolved}, args...)...)
+			c := exec.Command(ld)
+			c.Args = LinkerArgv(filepath.Base(resolved), resolved, args)
+			return c
 		}
 	}
 	return exec.Command(resolved, args...)
+}
+
+// LinkerArgv builds the argument vector for a loader-mediated exec.
+//
+// This must match what termux-exec does, and the detail is easy to get
+// wrong: the loader is the *program* (argv is passed to execve alongside
+// the loader's path), but argv[0] stays the name the program was invoked
+// as, and the binary's path is inserted at argv[1].
+//
+//	execve("/system/bin/linker64", ["lrm", "/data/.../lrm", "daemon"])
+//
+// Getting this wrong by putting the loader in argv[0] produces
+//
+//	execve("/system/bin/linker64", ["/system/bin/linker64", "/data/.../lrm", "daemon"])
+//
+// and then FixArgs cannot recognise argv[1] as our own executable --
+// the basenames no longer match -- so the path is left in place and the
+// CLI reports:
+//
+//	unknown command "/data/data/com.termux/files/home/.local/bin/lrm"
+//
+// Observed on an Android 16 device when `lrm daemon --supervise`
+// re-executed itself, which then span on a 1s..60s backoff.
+func LinkerArgv(argv0, binary string, args []string) []string {
+	out := make([]string, 0, len(args)+2)
+	out = append(out, argv0, binary)
+	return append(out, args...)
 }
 
 // CommandContext is Command with a context, so a child that never answers
@@ -79,7 +108,12 @@ func Command(name string, args ...string) *exec.Cmd {
 // Termux:API app is missing.
 func CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
 	c := Command(name, args...)
-	cc := exec.CommandContext(ctx, c.Path, c.Args[1:]...)
+	// Rebuild through CommandContext for the kill-on-cancel behaviour,
+	// then restore Args verbatim: under the loader they are not simply
+	// Path plus arguments, and recomputing them would reintroduce the
+	// argv[0] bug above.
+	cc := exec.CommandContext(ctx, c.Path)
+	cc.Args = c.Args
 	cc.Env = c.Env
 	cc.Dir = c.Dir
 	return cc

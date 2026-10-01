@@ -39,6 +39,14 @@ LRM Mobile additions to 'lrm daemon':
 Everything else is passed through to LRM's own daemon unchanged.
 `
 
+// A daemon that dies within fastFailWindow with an ordinary exit status
+// did not get killed by the system; it failed to start. After
+// maxFastFailures of those in a row the supervisor stops.
+const (
+	fastFailWindow  = 5 * time.Second
+	maxFastFailures = 3
+)
+
 type daemonOpts struct {
 	supervise   bool
 	wakeLock    bool
@@ -108,6 +116,7 @@ func superviseDaemon(o daemonOpts, rawArgs []string, info platform.Info) int {
 	backoff := time.Second
 	const maxBackoff = 60 * time.Second
 	restarts := 0
+	fastFailures := 0
 
 	fmt.Println("mobile: supervising `lrm daemon` — it will be restarted if Android kills it")
 	fmt.Println("mobile: Ctrl-C to stop for good")
@@ -143,12 +152,36 @@ func superviseDaemon(o daemonOpts, rawArgs []string, info platform.Info) int {
 
 		case err := <-done:
 			ran := time.Since(started)
+			killed := isProbablyOOMKill(err)
+
 			// A daemon that ran for a while and then died was almost
 			// certainly killed by the system; reset the backoff so it
 			// comes straight back.
 			if ran > 30*time.Second {
 				backoff = time.Second
+				fastFailures = 0
 			}
+
+			// A daemon that exits immediately with an ordinary status
+			// has not been killed by Android -- it has failed to start.
+			// Restarting cannot help, and a supervisor that loops on it
+			// forever buries the real error in its own noise. Stop and
+			// show it.
+			if err != nil && !killed && ran < fastFailWindow {
+				fastFailures++
+				if fastFailures >= maxFastFailures {
+					fmt.Fprintf(os.Stderr,
+						"\nlrm: the daemon exited immediately %d times in a row (%v).\n"+
+							"lrm: that is a startup failure, not Android reclaiming the process,\n"+
+							"lrm: so supervision is giving up rather than looping.\n"+
+							"lrm: check the error above -- common causes are running outside an\n"+
+							"lrm: LRM repository, or a port already in use.\n", fastFailures, err)
+					return 1
+				}
+			} else if err == nil || killed {
+				fastFailures = 0
+			}
+
 			restarts++
 			if o.maxRestarts > 0 && restarts >= o.maxRestarts {
 				fmt.Fprintf(os.Stderr, "lrm: daemon exited %d times, giving up\n", restarts)
@@ -158,7 +191,7 @@ func superviseDaemon(o daemonOpts, rawArgs []string, info platform.Info) int {
 			if err != nil {
 				reason = err.Error()
 			}
-			if isProbablyOOMKill(err) {
+			if killed {
 				reason = "killed by Android (out of memory / background limit)"
 			}
 			fmt.Fprintf(os.Stderr,
