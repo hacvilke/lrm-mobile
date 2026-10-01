@@ -35,6 +35,7 @@ Options:
   --budget SEC     wall-clock ceiling for the whole scan (default 180)
   --concurrency N  simultaneous connections (default 256)
   --no-wifi        skip the Wi-Fi survey
+  --no-identify    skip SSDP/NetBIOS/banner probing (less noise, fewer names)
   --wifi-only      only survey Wi-Fi networks, do not touch the LAN
   --json           machine-readable output
   -h, --help       this text
@@ -78,6 +79,8 @@ func runScan(args []string, info platform.Info) int {
 			opt.Depth = scan.Passive
 		case "--no-wifi":
 			opt.SkipWiFi = true
+		case "--no-identify":
+			opt.SkipIdentify = true
 		case "--wifi-only":
 			wifiOnly = true
 		case "--json":
@@ -215,6 +218,13 @@ func printScan(res *scan.Result) {
 		}
 		fmt.Printf("  %-15s  %-17s  %-14s  %s%s\n",
 			d.IP, dash(d.MAC), dash(d.Vendor), name, tag)
+
+		if d.Model != "" {
+			fmt.Printf("  %-15s  %-17s  %-14s  model: %s\n", "", "", "", d.Model)
+		}
+		if d.OS != "" {
+			fmt.Printf("  %-15s  %-17s  %-14s  runs:  %s\n", "", "", "", d.OS)
+		}
 
 		if d.LRM != nil {
 			l := d.LRM

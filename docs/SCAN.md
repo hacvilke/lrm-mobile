@@ -122,6 +122,30 @@ Work is also interleaved across hosts rather than finishing one at a time,
 so no single machine sees a burst of thousands of connections and no one
 unresponsive host stalls the run.
 
+### Identifying devices when there are no MAC addresses
+
+On Android the ARP table is unreadable, so there is no MAC and therefore no
+OUI vendor lookup. Rather than show a table of bare IP addresses, the
+scanner asks the devices who they are. All of this is information they
+publish to anyone on the local network, and none of it needs root, ARP or
+netlink:
+
+| Probe | What it gives | Typically answers |
+|---|---|---|
+| **SSDP/UPnP** | friendly name, manufacturer, model | routers, TVs, speakers, printers, NAS, consoles |
+| **NetBIOS** (UDP 137) | workstation name | Windows machines, Samba servers |
+| **TLS certificate** | common name, SANs, organisation | anything on 443; embedded devices put the model here |
+| **Service banners** | software and often the OS | SSH announces `OpenSSH_9.6p1 Ubuntu-3ubuntu13`; HTTP returns `Server:` and the page title |
+
+In practice this is *more* informative than a MAC lookup: an OUI tells you
+a board was made by Realtek, whereas the device tells you it is a
+`Brother HL-L2350DW` or `nginx/1.24.0 (Ubuntu)`.
+
+`--no-identify` turns it all off if you want the quietest possible scan.
+
+SSDP works on Android without a multicast lock because the M-SEARCH goes
+out as multicast but the replies come back unicast to our source port.
+
 ### Vendor names
 
 The IEEE OUI registry is ~35,000 entries and about 3 MB. Embedding it would
@@ -195,6 +219,7 @@ with `--cidr`.
 | `--timeout MS` | per-connection timeout (default 600) |
 | `--budget SEC` | wall-clock ceiling; always returns (default 180) |
 | `--concurrency N` | simultaneous connections (default 256) |
+| `--no-identify` | skip SSDP, NetBIOS, TLS and banner probing |
 | `--no-wifi` / `--wifi-only` | control the Wi-Fi survey |
 | `--json` | machine-readable output |
 
