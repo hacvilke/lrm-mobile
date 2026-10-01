@@ -312,6 +312,11 @@ Termux from battery optimisation (Settings → Apps → Termux → Battery →
 Unrestricted). LRM's sync resumes, so restarting is safe. Full guidance and
 an honest list of what is *not* solved: [docs/DAEMON-ANDROID.md](docs/DAEMON-ANDROID.md).
 
+**`lrm scan: cannot list network interfaces: ... netlinkrib: permission denied`**
+Fixed in v0.2.1 — upgrade. Android 11+ denies `NETLINK_ROUTE` to apps, so
+Go's `net.Interfaces()` cannot work; the scanner now reads
+`/proc/net/route` and uses a connected UDP socket instead.
+
 **`lrm scan` finds nothing / no Wi-Fi networks**
 The Wi-Fi survey needs `pkg install termux-api` plus the Termux:API app and
 Location permission, and Android throttles scans to a few per two minutes.

@@ -44,6 +44,19 @@ func LocalInterfaces(overrideCIDR string) ([]Interface, []string, error) {
 
 	ifs, err := net.Interfaces()
 	if err != nil {
+		// Android 11+ blocks NETLINK_ROUTE; net.Interfaces() cannot
+		// work there. Reconstruct from /proc/net/route instead of
+		// giving up on the whole scan.
+		if netlinkBlocked(err) {
+			out, note := interfacesWithoutNetlink()
+			if note != "" {
+				notes = append(notes, note)
+			}
+			if len(out) == 0 {
+				return nil, notes, fmt.Errorf("cannot determine this device's networks: %w", err)
+			}
+			return out, notes, nil
+		}
 		return nil, notes, fmt.Errorf("cannot list network interfaces: %w", err)
 	}
 
@@ -76,6 +89,14 @@ func LocalInterfaces(overrideCIDR string) ([]Interface, []string, error) {
 		}
 	}
 	if len(out) == 0 {
+		// netlink answered but told us nothing useful: still try the
+		// routing table before declaring the device offline.
+		if alt, note := interfacesWithoutNetlink(); len(alt) > 0 {
+			if note != "" {
+				notes = append(notes, note)
+			}
+			return alt, notes, nil
+		}
 		notes = append(notes, "no IPv4 LAN interface is up — on mobile data there is no local network to scan")
 	}
 	return out, notes, nil
@@ -115,7 +136,8 @@ func LocalIPs() map[string]bool {
 	out := map[string]bool{}
 	ifs, err := net.Interfaces()
 	if err != nil {
-		return out
+		// Netlink blocked (Android 11+): fall back to the UDP trick.
+		return localIPsWithoutNetlink()
 	}
 	for _, ifc := range ifs {
 		addrs, err := ifc.Addrs()

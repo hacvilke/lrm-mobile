@@ -39,12 +39,22 @@ func WiFiScan(ctx context.Context) ([]Network, string) {
 
 	connected := currentSSID(ctx)
 
+	// A termux-api helper blocks indefinitely when the Termux:API *app*
+	// is absent — the shell script waits on a reply that never comes. The
+	// timeout is the difference between a clear message and a hung
+	// terminal.
 	c, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	out, err := platform.Command("termux-wifi-scaninfo").Output()
+	out, err := platform.CommandContext(c, "termux-wifi-scaninfo").Output()
 	if err != nil {
-		_ = c
-		return nil, "Wi-Fi survey failed: is the Termux:API app installed and granted Location permission?"
+		if c.Err() != nil {
+			return nil, "Wi-Fi survey timed out after 15s — the termux-api package is installed " +
+				"but the Termux:API *app* is not responding. Install it from F-Droid " +
+				"(https://f-droid.org/packages/com.termux.api/) and grant it Location permission."
+		}
+		return nil, "Wi-Fi survey failed: the termux-api package is installed, but the Termux:API *app* " +
+			"is a separate install. Get it from F-Droid (https://f-droid.org/packages/com.termux.api/), " +
+			"open it once, and grant Location permission."
 	}
 
 	var raw []struct {
@@ -86,7 +96,9 @@ func currentSSID(ctx context.Context) string {
 	if _, err := exec.LookPath("termux-wifi-connectioninfo"); err != nil {
 		return ""
 	}
-	out, err := platform.Command("termux-wifi-connectioninfo").Output()
+	c, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	out, err := platform.CommandContext(c, "termux-wifi-connectioninfo").Output()
 	if err != nil {
 		return ""
 	}

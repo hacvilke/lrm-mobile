@@ -64,6 +64,32 @@ scanned in 34.2s
 | MAC OUI table | vendor names | Short built-in list, see below |
 | `termux-wifi-scaninfo` | access points in range | Needs Termux:API + Location |
 
+### Netlink is blocked on Android 11+
+
+Go's `net.Interfaces()` is built on a `NETLINK_ROUTE` dump, which Android
+11 and later deny to ordinary apps. On an Android 16 device `lrm scan` died
+outright with:
+
+```
+lrm scan: cannot list network interfaces: route ip+net: netlinkrib: permission denied
+```
+
+This is a platform restriction with no permission to request and no flag to
+pass. Since v0.2.1 the scanner never relies on netlink:
+
+1. **`/proc/net/route`** — the routing table as plain text: interface,
+   destination, netmask and gateway. This gives the *real* gateway rather
+   than the conventional `.1` guess.
+2. **A connected UDP socket** — `connect(2)` on UDP sends no packets; the
+   kernel merely selects a source address, which is this device's IP on the
+   route that would be used. No permissions at all.
+3. **Fall back to assuming a `/24`** around that address if the routing
+   table is unreadable too.
+
+Whenever a fallback is used the scan says so in its `note:` output, because
+a degraded scan that looks identical to a full one is worse than one that
+admits it. Interface MAC addresses are unavailable via this path.
+
 ### There is no ping
 
 A real ICMP ping needs a raw socket, which needs root. LRM Mobile refuses
@@ -110,10 +136,20 @@ locally-administered range.
 A process cannot touch the Wi-Fi radio on Android. It goes through the
 Termux:API app, which needs Location permission:
 
+**Two separate installs are required**, and having only the first is the
+most common reason the survey returns nothing:
+
 ```sh
-pkg install termux-api
-# then install the Termux:API app from F-Droid and grant Location
+pkg install termux-api        # 1. the command-line helpers
 ```
+
+2. the **Termux:API app** from F-Droid —
+   <https://f-droid.org/packages/com.termux.api/> — then open it once and
+   grant it **Location** permission.
+
+With the package but not the app, `termux-wifi-scaninfo` blocks waiting for
+a reply that never arrives, so the scan applies a 15-second timeout and
+explains which half is missing.
 
 Three things go wrong routinely, and each gets its own message rather than
 an empty list:

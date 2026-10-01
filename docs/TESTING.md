@@ -107,6 +107,17 @@ subnet guard, and daemon flag splitting.
 Exercised for real on a Linux host: `lrm scan --fast`, `--full`, `--json`
 and `--cidr` all run end to end and produce correct output.
 
+Confirmed on the Android 16 device, v0.2.0:
+
+- [x] `lrm dashboard` starts, binds `127.0.0.1`, prints the URL and
+      launches no browser — exactly the mobile behaviour intended.
+- [x] `lrm scan` surfaced a genuine platform bug: `net.Interfaces()` fails
+      with `netlinkrib: permission denied` because Android 11+ denies
+      NETLINK_ROUTE. Fixed in v0.2.1 with a netlink-free discovery path
+      (`/proc/net/route` + a connected UDP socket).
+- [x] The Wi-Fi survey correctly reported that the Termux:API *app* was
+      missing when only the `termux-api` package was installed.
+
 **Not verified on a phone:** the Wi-Fi survey (needs Termux:API and
 Location on a real device), `/proc/net/arp` behaviour under Android 10+
 restrictions, and whether `--supervise` actually survives Android's

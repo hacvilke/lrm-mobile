@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -71,6 +72,17 @@ func Command(name string, args ...string) *exec.Cmd {
 		}
 	}
 	return exec.Command(resolved, args...)
+}
+
+// CommandContext is Command with a context, so a child that never answers
+// cannot hang the caller. termux-api helpers do exactly that when the
+// Termux:API app is missing.
+func CommandContext(ctx context.Context, name string, args ...string) *exec.Cmd {
+	c := Command(name, args...)
+	cc := exec.CommandContext(ctx, c.Path, c.Args[1:]...)
+	cc.Env = c.Env
+	cc.Dir = c.Dir
+	return cc
 }
 
 // SelfCommand builds a command that re-runs this very binary. Used by the
