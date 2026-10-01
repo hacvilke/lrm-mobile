@@ -65,6 +65,22 @@ deliberately does not do.
 Use a `type(scope): summary` first line where it helps
 (`fix(android):`, `feat(mobile):`, `docs:`, `chore:`).
 
+### Releasing
+
+Branch protection applies to `main`, not to tags, so the release flow is
+unchanged: merge the PR, then push a tag and let the workflow publish.
+
+```sh
+git tag -a v0.3.0 -m "v0.3.0 — summary"
+git push origin v0.3.0
+```
+
+`release.yml` builds every target, runs `verify-elf.sh` as a blocking
+gate, and uploads the binaries with `SHA256SUMS.txt`. Never upload release
+assets by hand: a tag push triggers the workflow, which rebuilds and
+replaces anything already attached, and the window between the two leaves
+users with a checksum that does not match what they just downloaded.
+
 ## Standards
 
 - **`gofmt` clean, `go vet` clean, tests pass.** CI enforces all three.
