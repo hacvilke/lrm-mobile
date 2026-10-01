@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: LRM engine bug (sync, commits, dashboard contents, .lr language)
+    url: https://github.com/hacvilke/lrm/issues/new
+    about: This repository is only the mobile build and install layer. Engine bugs belong upstream.
+  - name: Security vulnerability
+    url: https://github.com/hacvilke/lrm-mobile/security/advisories/new
+    about: Please report privately, not as a public issue.
+  - name: "\"unexpected e_type: 2\" or other install failures"
+    url: https://github.com/hacvilke/lrm-mobile/blob/main/docs/E_TYPE.md
+    about: Read this first — it almost certainly explains what you are seeing.

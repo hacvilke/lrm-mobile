@@ -390,13 +390,19 @@ Releasing: tag `vX.Y.Z` and push. `release.yml` builds every target, runs
 
 ## License and attribution
 
-LRM Mobile is MIT licensed — see [LICENSE](LICENSE).
+LRM Mobile is licensed under the **Apache License 2.0** — see
+[LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-**LRM itself is not part of this license.** It is the work of the LRM
-authors at <https://github.com/hacvilke/lrm>, included here as an unmodified
-git submodule under its own license and copyright. All of the version
-control, syncing, mesh networking, git compatibility and language work is
-theirs; this repository contributes only the mobile platform, build and
-install layer around it.
+**LRM itself is a separate work** by the LRM authors at
+<https://github.com/hacvilke/lrm>, also under Apache-2.0, included here as
+an unmodified git submodule. No LRM source is copied into this repository.
+All of the version control, syncing, mesh networking, git compatibility and
+language work is theirs; this repository contributes only the mobile
+platform, build and install layer around it. Released binaries contain both
+and are distributed under the same Apache-2.0 terms.
 
 If LRM Mobile is useful to you, credit the upstream project first.
+
+Contributions are accepted under Apache-2.0 section 5 — no CLA. See
+[CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+and [SECURITY.md](SECURITY.md).

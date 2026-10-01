@@ -1,0 +1,32 @@
+name: Platform support
+description: A device, architecture or terminal app that is not supported yet
+labels: ["platform"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Known gaps, already tracked — please do not open duplicates:
+
+        - **Android x86_64** — Go cannot build an android/amd64 PIE without
+          cgo and an NDK. Build from source in the emulator instead.
+        - **Android 32-bit (armv7)** — not built; say so here if you need it.
+        - **iOS** — see `docs/ROADMAP-IOS.md`. There is no general way to
+          execute a CLI on a stock device.
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "Android 13 armv7 / a-Shell on iOS / Chromebook Linux container"
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Output of `uname -a`, `echo $PREFIX`, and anything from `install.sh --print-target`.
+      render: shell
+  - type: textarea
+    id: why
+    attributes:
+      label: What do you want to do with it?
+      description: Helps us judge whether a build is worth maintaining untested.

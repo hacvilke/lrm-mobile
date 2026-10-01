@@ -1,0 +1,60 @@
+name: Bug report
+description: Something does not work on Android, Termux, or a supported desktop target
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The single most useful thing you can give us
+        is the output of `lrm platform` — it tells us the build, the
+        detected platform, whether the Termux loader workaround is active,
+        and every resolved path.
+
+        **If this is about syncing, commits, the dashboard's contents or
+        the `.lr` language, it belongs in the engine repository:**
+        https://github.com/hacvilke/lrm/issues
+  - type: textarea
+    id: platform
+    attributes:
+      label: Output of `lrm platform`
+      description: Paste the whole thing. If `lrm` will not run at all, say so and paste the error instead.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Paste the exact commands and the exact output.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: input
+    id: install-method
+    attributes:
+      label: How did you install it?
+      placeholder: "install.sh one-liner / --source / built from a clone"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS version
+      placeholder: "Pixel 8, Android 16, Termux 0.118.3 from F-Droid"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am on the latest release (`sh install.sh --force`)
+          required: true
+        - label: This is about the mobile/build/install layer, not the LRM engine
+          required: true
