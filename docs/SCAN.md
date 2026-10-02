@@ -134,12 +134,27 @@ netlink:
 |---|---|---|
 | **SSDP/UPnP** | friendly name, manufacturer, model | routers, TVs, speakers, printers, NAS, consoles |
 | **NetBIOS** (UDP 137) | workstation name | Windows machines, Samba servers |
+| **SMB/NTLM** (TCP 445, 139) | computer name, DNS name, domain | Windows hosts, including those with NetBIOS-over-TCP disabled |
 | **TLS certificate** | common name, SANs, organisation | anything on 443; embedded devices put the model here |
 | **Service banners** | software and often the OS | SSH announces `OpenSSH_9.6p1 Ubuntu-3ubuntu13`; HTTP returns `Server:` and the page title |
 
 In practice this is *more* informative than a MAC lookup: an OUI tells you
 a board was made by Realtek, whereas the device tells you it is a
 `Brother HL-L2350DW` or `nginx/1.24.0 (Ubuntu)`.
+
+#### Why SMB as well as NetBIOS
+
+A Windows machine with NetBIOS-over-TCP disabled — the default on many
+networks, and on Internet Connection Sharing interfaces — ignores UDP 137
+entirely, and shows up as a bare IP with `135/msrpc, 445/smb` and no name.
+
+SMB still names it. We send an SMB2 NEGOTIATE, then a SESSION_SETUP
+carrying an NTLMSSP NEGOTIATE token; the server replies
+`STATUS_MORE_PROCESSING_REQUIRED` with an NTLMSSP CHALLENGE whose
+TargetInfo block lists the NetBIOS name, the DNS name and the domain.
+**No credentials are sent and no session is established** — we read the
+challenge and hang up. This is unauthenticated information the server
+volunteers to anyone who connects.
 
 `--no-identify` turns it all off if you want the quietest possible scan.
 

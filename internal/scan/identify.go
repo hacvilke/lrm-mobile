@@ -396,6 +396,10 @@ func grabBanner(ctx context.Context, ip string, port int, timeout time.Duration)
 	switch port {
 	case 22, 2222:
 		return sshBanner(ctx, ip, port, timeout)
+	case 445, 139:
+		// A Windows host that has NetBIOS-over-TCP disabled will not
+		// answer UDP 137, but still names itself over SMB.
+		return smbIdentity(ctx, ip, port, timeout)
 	case 443, 8443, 9443:
 		return tlsIdentity(ctx, ip, port, timeout)
 	case 80, 81, 8000, 8008, 8080, 8081, 8888, 9000, 5000, 631, 8123, 8006:
