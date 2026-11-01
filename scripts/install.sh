@@ -316,31 +316,58 @@ if pout="$("$DEST" platform 2>&1)"; then
 fi
 
 # 8 + 9. PATH
-case ":${PATH}:" in
-  *":${DEST_DIR}:"*)
+#
+# Installing into ~/.local/bin and then telling the user to edit .bashrc is
+# the wrong answer on Termux: $PREFIX/bin is already on PATH in every shell,
+# every Termux:Widget and every launcher-started session, and it is writable
+# without root. So put a symlink there and the command just works, in the
+# same terminal, with no re-login. Editing a profile is only the fallback for
+# hosts where that directory does not exist or is read-only.
+LINK=""
+if [ "$TERMUX" = 1 ] && [ -n "${PREFIX:-}" ] && [ -d "${PREFIX}/bin" ] && [ -w "${PREFIX}/bin" ]; then
+  LINK="${PREFIX}/bin/${BIN_NAME}"
+  rm -f "$LINK" 2>/dev/null || true
+  if ln -sf "$DEST" "$LINK" 2>/dev/null; then
     say ""
-    say "PATH: ok — ${DEST_DIR} is already on your PATH."
-    ;;
-  *)
-    profile="$HOME/.profile"
-    [ "$TERMUX" = 1 ] && profile="$HOME/.bashrc"
-    case "${SHELL:-}" in
-      */zsh)  profile="$HOME/.zshrc" ;;
-      */bash) profile="$HOME/.bashrc" ;;
-    esac
-    say ""
-    say "PATH: ${DEST_DIR} is NOT on your PATH. Add it:"
-    say ""
-    say "  echo 'export PATH=\"${DEST_DIR}:\$PATH\"' >> ${profile}"
-    say "  . ${profile}"
-    say ""
-    say "(Termux reads ~/.bashrc, not ~/.profile, for interactive shells.)"
-    ;;
-esac
+    say "linked: ${LINK} -> ${DEST}"
+  else
+    warn "could not create ${LINK}; falling back to a PATH line"
+    LINK=""
+  fi
+fi
+
+# Prove the name resolves the way a user types it, not by inspecting $PATH.
+if command -v "$BIN_NAME" >/dev/null 2>&1; then
+  resolved="$(command -v "$BIN_NAME")"
+  say ""
+  say "PATH: ok — '${BIN_NAME}' resolves to ${resolved}"
+elif [ -n "$LINK" ]; then
+  say ""
+  say "PATH: linked into ${LINK}, but the shell has not picked it up yet."
+  say "      Run 'hash -r', or open a new terminal."
+else
+  profile="$HOME/.profile"
+  [ "$TERMUX" = 1 ] && profile="$HOME/.bashrc"
+  case "${SHELL:-}" in
+    */zsh)  profile="$HOME/.zshrc" ;;
+    */bash) profile="$HOME/.bashrc" ;;
+  esac
+  say ""
+  say "PATH: ${DEST_DIR} is NOT on your PATH. Add it:"
+  say ""
+  say "  echo 'export PATH=\"${DEST_DIR}:\$PATH\"' >> ${profile}"
+  say "  . ${profile}"
+  say ""
+  say "(Termux reads ~/.bashrc, not ~/.profile, for interactive shells.)"
+fi
 
 say ""
 say "Next:"
-say "  lrm --help"
+if command -v "$BIN_NAME" >/dev/null 2>&1; then
+  say "  ${BIN_NAME} --help"
+else
+  say "  ${DEST} --help      # not on PATH yet"
+fi
 say "  mkdir ~/my-project && cd ~/my-project"
 say "  lrm init --user your-name"
 say "  lrm daemon              # start syncing with your other devices"

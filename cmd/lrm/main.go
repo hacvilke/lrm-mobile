@@ -22,6 +22,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/lrm-project/lrm/internal/cli"
@@ -163,11 +164,26 @@ func printPlatform(info platform.Info, rawArgs []string) {
 	fmt.Printf("  cache dir     %s\n", info.CacheDir())
 	fmt.Printf("  tmp dir       %s\n", info.TmpDir())
 
+	// PATH is reported the way a user hits it: can `lrm` be typed? The
+	// install directory is a detail, and on Termux it is deliberately not on
+	// PATH — $PREFIX/bin is, so the installer symlinks there instead of
+	// asking the user to hand-edit .bashrc.
 	bin := info.BinDir()
-	if platform.InPath(bin, os.Getenv("PATH")) {
-		fmt.Printf("  PATH          ok (%s is on PATH)\n", bin)
-	} else {
-		fmt.Printf("  PATH          MISSING — %s is not on PATH\n", bin)
-		fmt.Printf("                echo 'export PATH=\"%s:$PATH\"' >> %s\n", bin, info.ShellProfile())
+	fmt.Printf("  PATH          %s\n", describePath(info, bin))
+}
+
+// describePath explains PATH status in one line, with the fix inline when
+// something is wrong.
+func describePath(info platform.Info, bin string) string {
+	pathEnv := os.Getenv("PATH")
+	if platform.InPath(bin, pathEnv) {
+		return fmt.Sprintf("ok (%s is on PATH)", bin)
 	}
+	if link := platform.LinkDir(); link != "" && platform.InPath(link, pathEnv) {
+		return fmt.Sprintf("ok (linked into %s, which is on PATH)", link)
+	}
+	if link := platform.LinkDir(); link != "" {
+		return fmt.Sprintf("MISSING — %s is not on PATH; run: ln -sf %s %s/lrm", bin, filepath.Join(bin, "lrm"), link)
+	}
+	return fmt.Sprintf("MISSING — %s is not on PATH; echo 'export PATH=\"%s:$PATH\"' >> %s", bin, bin, info.ShellProfile())
 }

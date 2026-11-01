@@ -22,19 +22,28 @@ curl -fsSL https://raw.githubusercontent.com/hacvilke/lrm-mobile/main/scripts/in
 ```
 
 The installer detects Android, picks `lrm_android_arm64`, verifies its
-SHA-256, installs to `$HOME/.local/bin/lrm`, tells you if that directory is
-not on your PATH, and then runs the binary to prove it executes on *your*
-device before declaring success.
+SHA-256, installs to `$HOME/.local/bin/lrm`, links `$PREFIX/bin/lrm` so the
+bare command works immediately, and then runs the binary to prove it executes
+on *your* device before declaring success.
 
-If PATH needs fixing it prints the exact line. In Termux that is `~/.bashrc`
-— Termux does not read `~/.profile` for interactive shells, which is why
-generic "add it to your .profile" advice tends to silently do nothing here.
+### Why a symlink and not a PATH line
+
+`$HOME/.local/bin` is not on Termux's PATH, and editing `~/.bashrc` only fixes
+the shells that read it — not `Termux:Widget`, not a session the launcher
+started, not `sh -c`. `$PREFIX/bin` (usually
+`/data/data/com.termux/files/usr/bin`) is on PATH everywhere, in every shell,
+for every user of that Termux install, and it is writable without root. So the
+installer puts the binary in one place and the *name* in another:
 
 ```sh
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-. ~/.bashrc
+ln -sf $HOME/.local/bin/lrm $PREFIX/bin/lrm
 lrm --help
 ```
+
+That is what older releases told you to do by hand. If `$PREFIX/bin` is not
+writable (rooted setups, odd ROMs) the installer falls back to printing the
+`~/.bashrc` line, and off Termux it prints a `~/.profile` / `~/.zshrc` line
+because `/usr/local/bin` needs root there.
 
 ## First repository
 

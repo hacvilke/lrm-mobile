@@ -312,6 +312,28 @@ func (i Info) BinDir() string {
 	return filepath.Join(i.Home, ".local", "bin")
 }
 
+// LinkDir is the directory on PATH into which the installer symlinks the
+// binary, so `lrm` is typeable without editing a shell profile.
+//
+// On Termux that is $PREFIX/bin (/data/data/com.termux/files/usr/bin): it is
+// already first on PATH in every shell, every Termux:Widget, and every
+// session started by the launcher, and it is writable without root. The
+// install directory (~/.local/bin) is deliberately not on PATH — one place
+// for the binary, one symlink for the name.
+//
+// Off Termux this returns "" and the installer falls back to ~/.local/bin
+// plus a profile line, because on a desktop /usr/local/bin needs root.
+func LinkDir() string {
+	if os.Getenv("TERMUX_VERSION") == "" && !strings.Contains(os.Getenv("PREFIX"), "com.termux") {
+		return ""
+	}
+	prefix := os.Getenv("PREFIX")
+	if prefix == "" {
+		return ""
+	}
+	return filepath.Join(prefix, "bin")
+}
+
 // ConfigDir is the machine-wide LRM state directory (device identity, known
 // peers). Upstream LRM already honours $LRM_HOME and otherwise uses
 // ~/.lrm, which is correct on Termux too, so this agrees with it rather

@@ -33,9 +33,11 @@ lrm init --user brandon
 lrm daemon
 ```
 
-The installer prints the exact PATH line to add if `$HOME/.local/bin` is not
-already on your PATH, and it runs the binary before declaring success, so
-you find out on the spot whether it works on *your* device.
+The binary lands in `$HOME/.local/bin/lrm` and the installer symlinks it into
+`$PREFIX/bin`, which Termux already puts on PATH — so `lrm` works in the same
+terminal, with no shell restart and no rc-file editing. It also runs the
+binary before declaring success, so you find out on the spot whether it works
+on *your* device.
 
 Full guide: **[docs/TERMUX.md](docs/TERMUX.md)**.
 
@@ -298,9 +300,10 @@ as `os.Args[1]`. LRM Mobile now detects this via `/proc/self/exe` and
 corrects argv.
 
 **`lrm: command not found` right after a successful install**
-`$HOME/.local/bin` is not on your PATH. Termux reads `~/.bashrc`, not
-`~/.profile`:
-`echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && . ~/.bashrc`
+Older installers only wrote to `$HOME/.local/bin`, which is not on Termux's
+PATH. The current installer links `$PREFIX/bin/lrm` instead. If you are on an
+older release, do the same by hand — it needs no shell restart:
+`ln -sf $HOME/.local/bin/lrm $PREFIX/bin/lrm`
 
 **`No such file or directory` when the file is clearly there**
 The binary's ELF interpreter does not exist — a `GOOS=linux` PIE build
